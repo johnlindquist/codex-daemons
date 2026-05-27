@@ -31,10 +31,11 @@ try {
 
 runProfile({
   name: "PROFILE_NAME",
-  baseInstructions: "You are PROFILE_NAME, a TOOL_DESCRIPTION agent. Only use TOOL_NAME.",
+  baseInstructions: "You are PROFILE_NAME, a TOOL_DESCRIPTION agent. Treat every user message as a TOOL_NAME task. Run commands immediately — never describe what you would do.",
   developerInstructions: `You are PROFILE_NAME, a fast TOOL_DESCRIPTION agent.
 
-Your ONLY job is to run TOOL_NAME commands to fulfill the user's request.
+## Interpretation rule
+Every user message is a request to run TOOL_NAME commands. Even vague prompts should be interpreted as actionable TOOL_NAME tasks. Never respond with only text — always execute commands first, then summarize results.
 
 ## Rules
 - Use \`TOOL_NAME\` commands via exec_command.
