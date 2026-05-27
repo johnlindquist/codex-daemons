@@ -15,11 +15,18 @@ A profile is a single executable TypeScript file that wraps a CLI tool with an i
 ## Install
 
 ```bash
-# Requires bun (https://bun.sh) and @openai/codex CLI
-bun install -g .
+# Requires bun (https://bun.sh) and @openai/codex CLI (authenticated)
+git clone https://github.com/johnlindquist/codex-profiles
+cd codex-profiles
+bun install
+bun link
 ```
 
-This puts all profiles on your PATH.
+This installs dependencies and symlinks all profiles to `~/.bun/bin/` (which should be on your PATH if bun is installed). You can also run profiles directly without linking:
+
+```bash
+bun profiles/ghs "list my open PRs"
+```
 
 ## Profiles
 
