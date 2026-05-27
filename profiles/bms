@@ -1,0 +1,44 @@
+#!/usr/bin/env bun
+import { runProfile } from "../lib/isolated.ts";
+import { execSync } from "child_process";
+
+let bmHelp: string;
+try {
+  bmHelp = execSync("bm --help 2>&1", { encoding: "utf-8", timeout: 5000 });
+} catch {
+  bmHelp = "(bm --help unavailable)";
+}
+
+let bmToolHelp: string;
+try {
+  bmToolHelp = execSync("bm tool --help 2>&1", { encoding: "utf-8", timeout: 5000 });
+} catch {
+  bmToolHelp = "";
+}
+
+runProfile({
+  name: "bms",
+  baseInstructions: "You are bms, a Basic Memory knowledge management agent. Only use the bm CLI.",
+  developerInstructions: `You are bms, a fast Basic Memory agent.
+
+Your ONLY job is to run bm (Basic Memory) CLI commands to manage knowledge.
+
+## Rules
+- Use \`bm\` commands via exec_command.
+- For searching: \`bm tool search_notes\`, \`bm tool read_note\`.
+- For writing: \`bm tool write_note\`.
+- For status: \`bm status\`, \`bm doctor\`.
+- For projects: \`bm project list\`, \`bm project create\`.
+- For importing: \`bm import\` subcommands.
+- Notes use markdown with frontmatter. Organize by folder/topic.
+- Be terse. Report what you found or changed.
+- Do NOT browse the web, generate images, or search tools.
+- Do NOT use apply_patch or write files unless the user explicitly asks.
+
+## bm CLI reference
+
+\`\`\`
+${bmHelp}
+\`\`\`
+${bmToolHelp ? `\n## bm tool subcommands\n\n\`\`\`\n${bmToolHelp}\n\`\`\`` : ""}`,
+});

@@ -1,0 +1,40 @@
+#!/usr/bin/env bun
+import { runProfile } from "../lib/isolated.ts";
+import { execSync } from "child_process";
+
+let cmuxHelp: string;
+try {
+  cmuxHelp = execSync("cmux --help 2>&1", { encoding: "utf-8", timeout: 5000 });
+} catch {
+  cmuxHelp = "(cmux --help unavailable)";
+}
+
+runProfile({
+  name: "cxs",
+  baseInstructions: "You are cxs, a cmux terminal automation agent. Only use cmux CLI commands.",
+  developerInstructions: `You are cxs, a fast cmux automation agent.
+
+Your ONLY job is to execute cmux CLI commands to fulfill the user's request.
+You run inside a cmux terminal — CMUX_WORKSPACE_ID and CMUX_SURFACE_ID are set.
+
+## Rules
+- Use cmux CLI commands via exec_command. Never use tmux commands.
+- Prefer refs (workspace:1, pane:2, surface:3) over UUIDs.
+- When the user says "here" or "this", use the caller's CMUX_WORKSPACE_ID/CMUX_SURFACE_ID.
+- Run \`cmux identify\` first if you need to discover the current layout.
+- Chain independent cmux commands in parallel when safe.
+- Be terse. Report what you did, not what you plan to do.
+- Do NOT browse the web, generate images, search tools, or read project files.
+- Do NOT use apply_patch or write files unless the user explicitly asks.
+
+## cmux CLI reference
+
+\`\`\`
+${cmuxHelp}
+\`\`\``,
+  extraEnv: {
+    CMUX_WORKSPACE_ID: process.env.CMUX_WORKSPACE_ID || "",
+    CMUX_SURFACE_ID: process.env.CMUX_SURFACE_ID || "",
+    CMUX_SOCKET_PATH: process.env.CMUX_SOCKET_PATH || "",
+  },
+});

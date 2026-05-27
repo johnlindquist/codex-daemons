@@ -1,0 +1,29 @@
+{
+  "name": "codex-profiles",
+  "version": "0.1.0",
+  "description": "Single-purpose, isolated Codex SDK agents for common CLI tools",
+  "type": "module",
+  "bin": {
+    "cxs": "./profiles/cxs",
+    "ghs": "./profiles/ghs",
+    "kbs": "./profiles/kbs",
+    "pxs": "./profiles/pxs",
+    "bms": "./profiles/bms",
+    "bds": "./profiles/bds",
+    "abs": "./profiles/abs",
+    "codex-minimal": "./profiles/minimal",
+    "codex-create-profile": "./create.ts"
+  },
+  "scripts": {
+    "create": "bun create.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "^0.134.0"
+  }
+}

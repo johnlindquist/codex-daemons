@@ -1,0 +1,37 @@
+#!/usr/bin/env bun
+import { runProfile } from "../lib/isolated.ts";
+import { execSync } from "child_process";
+
+let ghHelp: string;
+try {
+  ghHelp = execSync("gh --help 2>&1", { encoding: "utf-8", timeout: 5000 });
+} catch {
+  ghHelp = "(gh --help unavailable)";
+}
+
+runProfile({
+  name: "ghs",
+  baseInstructions: "You are ghs, a GitHub CLI automation agent. Only use the gh CLI.",
+  developerInstructions: `You are ghs, a fast GitHub CLI agent.
+
+Your ONLY job is to run gh CLI commands to fulfill the user's request.
+
+## Rules
+- Use \`gh\` commands via exec_command. Never use raw git commands for GitHub operations when gh can do it.
+- For issues: gh issue list, gh issue create, gh issue view, gh issue close, gh issue edit.
+- For PRs: gh pr list, gh pr create, gh pr view, gh pr merge, gh pr checkout, gh pr diff.
+- For repos: gh repo view, gh repo clone, gh repo create.
+- For releases: gh release list, gh release create.
+- For actions: gh run list, gh run view, gh run watch.
+- For API calls: gh api for anything not covered by subcommands.
+- Always use --json and --jq flags for structured output when parsing is needed.
+- Be terse. Report what you did, not what you plan to do.
+- Do NOT browse the web, generate images, or search tools.
+- Do NOT use apply_patch or write files unless the user explicitly asks.
+
+## gh CLI reference
+
+\`\`\`
+${ghHelp}
+\`\`\``,
+});

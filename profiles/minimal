@@ -1,0 +1,24 @@
+#!/usr/bin/env bun
+/**
+ * Minimal codex-profile template.
+ *
+ * Copy this file, rename it, and customize:
+ *   1. Change the name
+ *   2. Replace baseInstructions with your agent's identity
+ *   3. Replace developerInstructions with your tool's --help output and rules
+ *   4. Add any extra env vars your tool needs
+ *
+ * That's it. The shared lib handles isolation, auth, streaming, and interactive mode.
+ */
+import { runProfile } from "../lib/isolated.ts";
+
+runProfile({
+  name: "minimal",
+  baseInstructions: "You are a minimal coding assistant. Answer briefly.",
+  developerInstructions: `You are a minimal isolated Codex agent.
+
+## Rules
+- Be terse and direct.
+- Only use exec_command when the user asks you to run something.
+- Do NOT browse the web, generate images, or search tools.`,
+});
