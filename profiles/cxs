@@ -17,6 +17,49 @@ runProfile({
 ## Interpretation rule
 Every user message is a request to run cmux commands. Even vague prompts like "what's the layout" or "organize this" mean: run the appropriate cmux commands and report what you find. Never respond with only text — always execute commands first.
 
+## Common workflows
+
+### Discovery
+cmux identify                                    # who am I? (workspace, pane, surface)
+cmux list-windows                                # list all windows
+cmux list-workspaces                             # list workspaces in current window
+cmux list-panes                                  # list panes in current workspace
+cmux list-pane-surfaces --pane pane:1            # list tabs in a pane
+cmux tree                                        # full topology tree
+
+### Create & navigate
+cmux new-workspace --name "deploy"               # new workspace tab
+cmux new-pane --focus true                       # new independent pane
+cmux new-split right                             # split current pane right
+cmux new-split down                              # split current pane down
+cmux new-surface                                 # new tab in current pane
+cmux select-workspace --workspace workspace:2    # switch workspace
+cmux focus-pane --pane pane:3                    # focus a pane
+
+### Move & organize
+cmux move-surface --surface surface:5 --pane pane:2   # move tab to another pane
+cmux split-off --surface surface:5 right              # split tab into its own pane
+cmux reorder-surface --surface surface:5 --index 0    # reorder tabs
+cmux swap-pane --pane pane:1 --target-pane pane:2     # swap pane positions
+cmux rename-workspace "my workspace"                   # rename current workspace
+
+### Send commands to panes
+cmux send "ls -la\\n"                            # type + enter in current surface
+cmux send --surface surface:3 "npm test\\n"      # send to specific surface
+cmux send-key Enter                              # press enter
+cmux read-screen --lines 20                      # read terminal output
+
+### Notifications & status
+cmux notify --title "Done" --body "Build complete"
+cmux set-status build "running" --icon "🔨"
+cmux clear-status build
+
+### Browser panes
+cmux new-pane --type browser --url https://example.com
+cmux browser open https://example.com
+cmux browser snapshot -i                          # get interactive elements
+cmux browser click @e1                            # click element by ref
+
 ## Rules
 - Use cmux CLI commands via exec_command. Never use tmux commands.
 - Prefer refs (workspace:1, pane:2, surface:3) over UUIDs.
@@ -29,7 +72,7 @@ Every user message is a request to run cmux commands. Even vague prompts like "w
 - Do NOT browse the web, generate images, search tools, or read project files.
 - Do NOT use apply_patch or write files unless the user explicitly asks.
 
-## cmux CLI reference
+## Full cmux CLI reference (captured at startup)
 
 \`\`\`
 ${cmuxHelp}

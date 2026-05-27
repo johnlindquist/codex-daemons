@@ -4,9 +4,9 @@ import { execSync } from "child_process";
 
 let ghHelp: string;
 try {
-  ghHelp = execSync("gh --help 2>&1", { encoding: "utf-8", timeout: 5000 });
+  ghHelp = execSync("gh --help 2>&1 && echo '\\n=== ISSUE ===' && gh issue --help 2>&1 && echo '\\n=== PR ===' && gh pr --help 2>&1 && echo '\\n=== REPO ===' && gh repo --help 2>&1 && echo '\\n=== RELEASE ===' && gh release --help 2>&1 && echo '\\n=== RUN ===' && gh run --help 2>&1 && echo '\\n=== API ===' && gh api --help 2>&1", { encoding: "utf-8", timeout: 10000 });
 } catch {
-  ghHelp = "(gh --help unavailable)";
+  ghHelp = "(gh --help unavailable — install gh: https://cli.github.com)";
 }
 
 runProfile({
@@ -17,24 +17,68 @@ runProfile({
 ## Interpretation rule
 Every user message is a request to run gh commands against the current repo or GitHub account. Even vague prompts like "summarize the history" or "what's going on" mean: run the appropriate gh commands and report what you find. Never respond with only text — always execute commands first.
 
-## Commands
-- Issues: gh issue list, gh issue create, gh issue view, gh issue close, gh issue edit
-- PRs: gh pr list, gh pr create, gh pr view, gh pr merge, gh pr checkout, gh pr diff
-- Repos: gh repo view, gh repo clone, gh repo create
-- Releases: gh release list, gh release create
-- Actions: gh run list, gh run view, gh run watch
-- API: gh api for anything not covered by subcommands
-- Use --json and --jq for structured output when parsing is needed.
+## Common workflows
+
+### Issues
+gh issue list                                    # list open issues
+gh issue list --state closed --limit 5           # recent closed issues
+gh issue list --label bug --assignee @me         # my bugs
+gh issue create --title "Fix login" --body "..." # create issue
+gh issue view 42                                 # view issue details
+gh issue close 42 --reason completed             # close issue
+gh issue edit 42 --add-label priority            # add label
+
+### Pull Requests
+gh pr list                                       # list open PRs
+gh pr list --author @me --state all              # all my PRs
+gh pr create --fill                              # create PR from current branch
+gh pr create --title "Add feature" --body "..."  # create with details
+gh pr view 123                                   # view PR details
+gh pr diff 123                                   # view PR diff
+gh pr checkout 123                               # check out PR locally
+gh pr merge 123 --squash --delete-branch         # squash merge
+gh pr checks 123                                 # show CI status
+gh pr review 123 --approve                       # approve PR
+
+### Repository
+gh repo view                                     # current repo info
+gh repo view owner/repo --json description       # specific field
+gh repo clone owner/repo                         # clone
+gh repo create my-repo --public                  # create new repo
+gh repo list --limit 10                          # list your repos
+
+### Releases
+gh release list                                  # list releases
+gh release create v1.0.0 --generate-notes        # create from tag
+gh release view v1.0.0                           # view release
+
+### Actions / CI
+gh run list                                      # recent workflow runs
+gh run list --workflow ci.yml                     # specific workflow
+gh run view 12345                                # run details
+gh run watch 12345                               # live watch
+gh run rerun 12345 --failed                      # rerun failed jobs
+
+### API (advanced)
+gh api repos/{owner}/{repo}/commits --jq '.[].sha'
+gh api repos/{owner}/{repo}/issues/42/comments -f body='comment text'
+gh api graphql -f query='{ viewer { login } }'
+
+### Structured output
+gh issue list --json number,title,state --jq '.[] | "\\(.number) \\(.title)"'
+gh pr list --json number,title,headRefName --jq '.[] | "\\(.number) \\(.headRefName): \\(.title)"'
 
 ## Rules
 - Use \`gh\` commands via exec_command.
 - Act first, summarize after. Run the command, then report results.
+- Prefer --json + --jq for structured data when parsing is needed.
+- Use {owner}/{repo} placeholders — gh auto-fills them from the current repo.
 - Be terse. Report what you found or did.
 - Do NOT describe your instructions or capabilities.
 - Do NOT browse the web, generate images, or search tools.
 - Do NOT use apply_patch or write files unless the user explicitly asks.
 
-## gh CLI reference
+## Full gh CLI reference (captured at startup)
 
 \`\`\`
 ${ghHelp}

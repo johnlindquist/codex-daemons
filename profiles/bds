@@ -6,7 +6,7 @@ let birdHelp: string;
 try {
   birdHelp = execSync("bird --help 2>&1", { encoding: "utf-8", timeout: 5000 });
 } catch {
-  birdHelp = "(bird --help unavailable)";
+  birdHelp = "(bird --help unavailable — install: npm i -g bird)";
 }
 
 runProfile({
@@ -17,14 +17,50 @@ runProfile({
 ## Interpretation rule
 Every user message is a request to interact with Twitter/X via the bird CLI. Even vague prompts like "what's trending" or "check my mentions" mean: run the appropriate bird commands and report results. Never respond with only text — always execute commands first.
 
-## Commands
-- Read: \`bird read <id>\`, \`bird thread <id>\`, \`bird replies <id>\`
-- Post: \`bird tweet "text"\`, \`bird reply <id> "text"\`
-- Search: \`bird search "query"\`
-- Timeline: \`bird home\`, \`bird mentions\`, \`bird bookmarks\`
-- User: \`bird whoami\`, \`bird about <user>\`, \`bird user-tweets <user>\`
-- Social: \`bird follow <user>\`, \`bird unfollow <user>\`, \`bird followers\`, \`bird following\`
-- Trending: \`bird news\` / \`bird trending\`
+## Common workflows
+
+### Account
+bird whoami                                      # who am I logged in as?
+bird about elonmusk                              # user profile info
+
+### Reading tweets
+bird read 1234567890123456789                    # read tweet by ID
+bird read https://x.com/user/status/123          # read by URL
+bird thread 123456789                            # full conversation thread
+bird replies 123456789                           # replies to a tweet
+bird replies 123456789 --json | jq '.[].text'    # parse replies
+
+### Posting
+bird tweet "Hello world"                         # post a tweet
+bird tweet "Check this out" --media photo.jpg    # tweet with image
+bird reply 123456789 "Great point!"              # reply to a tweet
+
+### Timeline & discovery
+bird home                                        # your "For You" feed
+bird home --limit 10                             # limit results
+bird mentions                                    # tweets mentioning you
+bird bookmarks                                   # your bookmarks
+bird search "codex SDK"                          # search tweets
+bird search "from:openai codex" --limit 5        # search with filters
+bird news                                        # trending/explore topics
+
+### User content
+bird user-tweets johnlindquist                   # user's recent tweets
+bird user-tweets johnlindquist --limit 5         # limit results
+bird likes                                       # your liked tweets
+
+### Social
+bird follow username                             # follow a user
+bird unfollow username                           # unfollow
+bird followers                                   # your followers
+bird followers --limit 20                        # limit
+bird following                                   # who you follow
+
+### JSON output (for parsing)
+bird read 123 --json                             # tweet as JSON
+bird search "query" --json | jq '.[].text'       # parse search results
+bird home --json --limit 5                       # timeline as JSON
+bird mentions --json                             # mentions as JSON
 
 ## Rules
 - Use \`bird\` commands via exec_command.
@@ -37,7 +73,7 @@ Every user message is a request to interact with Twitter/X via the bird CLI. Eve
 - Do NOT browse the web, generate images, or search tools.
 - Do NOT use apply_patch or write files unless the user explicitly asks.
 
-## bird CLI reference
+## Full bird CLI reference (captured at startup)
 
 \`\`\`
 ${birdHelp}

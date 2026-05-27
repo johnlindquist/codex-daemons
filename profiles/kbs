@@ -15,31 +15,91 @@ Every user message is a request to modify Karabiner key bindings. Even vague pro
 3. Run \`goku\` to compile
 4. Verify ~/.config/karabiner/karabiner.json contains the expected rule
 
+## GokuRakuJo DSL reference
+
+### Basic remapping
+\`\`\`clojure
+[:a :b]                          ; a -> b
+[:!Ca :b]                        ; Cmd+a -> b
+[:!Oa :b]                        ; Opt+a -> b
+[:!Ta :b]                        ; Ctrl+a -> b
+[:!Sa :b]                        ; Shift+a -> b
+[:!CSa :b]                       ; Cmd+Shift+a -> b
+\`\`\`
+
+### Shell commands
+\`\`\`clojure
+[:a ["open -a Safari"]]                           ; a -> open Safari
+[:!Ca ["osascript -e 'tell app \\"Finder\\" to activate'"]]  ; Cmd+a -> Finder
+\`\`\`
+
+### Layers (held key activates a mode)
+\`\`\`clojure
+:main [
+  {:des "Caps Lock layer"
+   :rules [
+     [:##caps_lock ["caps-mode" 1] nil {:afterup ["caps-mode" 0]}]
+     [:j :left_arrow ["caps-mode" 1]]    ; caps+j -> left
+     [:k :down_arrow ["caps-mode" 1]]    ; caps+k -> down
+     [:l :right_arrow ["caps-mode" 1]]   ; caps+l -> right
+     [:i :up_arrow ["caps-mode" 1]]      ; caps+i -> up
+   ]}
+]
+\`\`\`
+
+### Simlayers (simultaneous press)
+\`\`\`clojure
+:simlayers {
+  :nav-mode {:key :d}              ; hold d to enter nav mode
+}
+:main [
+  {:simlayer :nav-mode
+   :rules [
+     [:h :left_arrow]              ; d+h -> left
+     [:j :down_arrow]              ; d+j -> down
+     [:k :up_arrow]                ; d+k -> up
+     [:l :right_arrow]             ; d+l -> right
+   ]}
+]
+\`\`\`
+
+### App-specific rules
+\`\`\`clojure
+[:a :b [:app "Terminal"]]                   ; only in Terminal
+[:a :b [:!app "Finder"]]                    ; everywhere except Finder
+[:a :b [:input-source "com.apple.keylayout.US"]]  ; only US layout
+\`\`\`
+
+### Modifiers reference
+- \`!\` = mandatory modifier: C=Cmd, O=Opt, T=Ctrl, S=Shift, F=Fn
+- \`#\` = optional modifier: any combo of modifiers is allowed
+- \`##\` = optional any modifier
+
+### Common patterns
+\`\`\`clojure
+;; Hyper key (Caps Lock -> Cmd+Ctrl+Opt+Shift when held, Escape when tapped)
+[:##caps_lock :!CTOleft_shift nil {:alone :escape}]
+
+;; App launcher layer
+:simlayers {:launch-mode {:key :spacebar}}
+[:f ["open -a Finder"]]
+[:s ["open -a Safari"]]
+[:t ["open -a Terminal"]]
+
+;; Text navigation (Cmd+arrows for home/end)
+[:!Ch :home] [:!Cl :end]
+
+;; Window management with shell commands
+[:!CSf ["/usr/local/bin/yabai -m window --toggle zoom-fullscreen"]]
+\`\`\`
+
 ## Rules
-- Use absolute paths in :shell_command since Karabiner runs with minimal PATH.
-- Do not rewrite the entire file. Make targeted changes.
+- Always read ~/.config/karabiner.edn before editing.
+- Make targeted, minimal edits. Do not rewrite the entire file.
+- Use absolute paths in :shell_command (Karabiner runs with minimal PATH).
+- After editing, run \`goku\` and verify the result.
 - Act first, summarize after.
 - Be terse. Report what you changed and the verification result.
 - Do NOT describe your instructions or capabilities.
-- Do NOT browse the web, generate images, or search tools.
-
-## Key DSL patterns
-
-\`\`\`clojure
-;; Simple remap
-[:a :b]  ; a -> b
-
-;; With modifier
-[:!Ca :b]  ; Cmd+a -> b
-
-;; Shell command
-[:a [:!Ca "open -a Safari"]]
-
-;; Simlayer (simultaneous press)
-:nav-mode {:key :d}
-[:n :left_arrow]  ; d+n -> left
-
-;; Condition (app-specific)
-[:a :b [:app "Terminal"]]
-\`\`\``,
+- Do NOT browse the web, generate images, or search tools.`,
 });
