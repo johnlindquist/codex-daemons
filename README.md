@@ -43,14 +43,14 @@ bun profiles/ghs "list my open PRs"
 
 ## Usage
 
-Every profile supports the same flags:
+Every profile streams by default — you see commands and output as they happen:
 
 ```bash
-# One-shot (default)
+# Streaming (default) — shows commands being run in real-time
 ghs "list my open PRs"
 
-# Stream events as they happen
-ghs --stream "create an issue titled 'fix login bug'"
+# Quiet mode — buffered, only shows the final answer
+ghs -q "list my open PRs"
 
 # Interactive TUI in a new cmux pane
 ghs -i

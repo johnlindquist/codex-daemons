@@ -1,23 +1,12 @@
 /**
  * Shared helper for creating fully isolated Codex SDK agents.
  *
- * Handles CODEX_HOME isolation, auth symlink, and the full set of
- * feature flags that minimize token usage (~6K vs ~22K default).
- *
- * Source references (from codex-rs source investigation):
- *   features.apps          codex-rs/features/src/lib.rs:130     (saves ~14K tokens)
- *   features.image_gen     codex-rs/features/src/lib.rs:168
- *   features.tool_search   codex-rs/features/src/lib.rs:136
- *   features.tool_suggest  codex-rs/features/src/lib.rs:140
- *   skills.include_instructions  codex-rs/core/src/config/mod.rs:3184
- *   include_apps_instructions    codex-rs/core/src/config/mod.rs:592
- *   include_environment_context  codex-rs/core/src/config/mod.rs:601
- *   base_instructions            codex-rs/core/src/session/mod.rs:550
- *   web_search                   codex-rs/core/src/config/mod.rs:2130
+ * Default mode is streaming (shows all events as they happen).
+ * Use --quiet for buffered one-shot output.
  */
 
 import { Codex, type CodexOptions, type ThreadOptions } from "@openai/codex-sdk";
-import { mkdirSync, symlinkSync, existsSync, rmSync } from "fs";
+import { mkdirSync, symlinkSync, existsSync, rmSync, writeFileSync } from "fs";
 import { execSync } from "child_process";
 
 export interface ProfileConfig {
@@ -96,8 +85,7 @@ export function createIsolatedCodex(config: ProfileConfig) {
   return { codex, startThread, cleanup, model, isolatedHome };
 }
 
-// CLI isolation flags for -i (interactive TUI) mode
-export function buildInteractiveFlags(config: ProfileConfig): string[] {
+function buildInteractiveFlags(config: ProfileConfig): string[] {
   const model = config.model || process.env.CODEX_PROFILE_MODEL || "gpt-5.3-codex-spark";
   return [
     "--dangerously-bypass-approvals-and-sandbox",
@@ -129,23 +117,23 @@ function tomlEscape(s: string): string {
 export function parseArgs(argv: string[]) {
   const args = argv.slice(2);
   const interactive = args.includes("-i") || args.includes("--interactive");
-  const streaming = args.includes("--stream");
+  const quiet = args.includes("-q") || args.includes("--quiet");
   const help = args.includes("--help") || args.includes("-h");
   const prompt = args
-    .filter((a) => !["--stream", "-i", "--interactive", "--help", "-h"].includes(a))
+    .filter((a) => !["-q", "--quiet", "-i", "--interactive", "--help", "-h"].includes(a))
     .join(" ");
-  return { interactive, streaming, help, prompt, noArgs: args.length === 0 };
+  return { interactive, quiet, help, prompt, noArgs: args.length === 0 };
 }
 
 export async function runProfile(config: ProfileConfig) {
-  const { interactive, streaming, help, prompt, noArgs } = parseArgs(process.argv);
+  const { interactive, quiet, help, prompt, noArgs } = parseArgs(process.argv);
 
   if (help || noArgs) {
     console.log(`${config.name} — isolated codex agent (spark)
 
 Usage:
-  ${config.name} <prompt>            One-shot command
-  ${config.name} --stream <prompt>   Stream events
+  ${config.name} <prompt>            Run with streaming (default)
+  ${config.name} -q <prompt>         Quiet mode (buffered, final answer only)
   ${config.name} -i [prompt]         Interactive TUI in new cmux pane
   ${config.name} --help              Show this help`);
     process.exit(0);
@@ -156,7 +144,6 @@ Usage:
     const flags = buildInteractiveFlags(config);
 
     const launcherPath = `/tmp/${config.name}-launcher-${process.pid}.sh`;
-    const { writeFileSync } = await import("fs");
     const launcherContent = [
       "#!/bin/sh",
       `cd ${JSON.stringify(process.cwd())}`,
@@ -202,26 +189,33 @@ Usage:
   const thread = startThread();
 
   try {
-    if (streaming) {
+    if (quiet) {
+      const turn = await thread.run(prompt);
+      if (turn.finalResponse) console.log(turn.finalResponse);
+    } else {
+      // Streaming is the default — show everything as it happens
       const { events } = await thread.runStreamed(prompt);
       for await (const event of events) {
-        if (event.type === "item.completed") {
+        if (event.type === "item.started") {
           const item = event.item;
-          if (item.type === "agent_message") console.log(item.text);
-          else if (item.type === "command_execution" && item.exit_code !== 0) {
-            console.error(`$ ${item.command} → exit ${item.exit_code}`);
-            if (item.aggregated_output) console.error(item.aggregated_output);
+          if (item.type === "command_execution") {
+            process.stderr.write(`\x1b[2m$ ${item.command}\x1b[0m\n`);
+          }
+        } else if (event.type === "item.completed") {
+          const item = event.item;
+          if (item.type === "agent_message") {
+            console.log(item.text);
+          } else if (item.type === "command_execution") {
+            if (item.aggregated_output) {
+              process.stderr.write(`\x1b[2m${item.aggregated_output}\x1b[0m`);
+              if (!item.aggregated_output.endsWith("\n")) process.stderr.write("\n");
+            }
+            if (item.exit_code !== 0) {
+              process.stderr.write(`\x1b[31m→ exit ${item.exit_code}\x1b[0m\n`);
+            }
           }
         }
       }
-    } else {
-      const turn = await thread.run(prompt);
-      for (const item of turn.items) {
-        if (item.type === "command_execution" && item.aggregated_output) {
-          process.stderr.write(item.aggregated_output);
-        }
-      }
-      if (turn.finalResponse) console.log(turn.finalResponse);
     }
   } finally {
     cleanup();
