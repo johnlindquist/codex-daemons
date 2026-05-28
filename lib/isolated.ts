@@ -6,8 +6,8 @@
  */
 
 import { Codex, type CodexOptions, type ThreadOptions } from "@openai/codex-sdk";
-import { mkdirSync, symlinkSync, existsSync, rmSync, writeFileSync } from "fs";
-import { execSync } from "child_process";
+import { mkdirSync, symlinkSync, existsSync, rmSync } from "fs";
+import { spawn } from "child_process";
 import { clientAvailable, runViaDaemon, runDaemon } from "./daemon.ts";
 
 export interface ProfileConfig {
@@ -209,7 +209,7 @@ export async function runProfile(config: ProfileConfig) {
 Usage:
   ${config.name} <prompt>            Run with streaming (default)
   ${config.name} -q <prompt>         Quiet mode (buffered, final answer only)
-  ${config.name} -i [prompt]         Interactive TUI in new cmux pane
+  ${config.name} -i [prompt]         Interactive codex TUI in this terminal
   ${config.name} --daemon            Start warm daemon (auto-used by next ${config.name} call)
   ${config.name} --no-warm <prompt>  Force in-process (skip daemon even if running)
   ${config.name} --effort <level>    Reasoning effort: none|minimal|low|medium|high|xhigh (warm daemon)
@@ -223,44 +223,21 @@ Usage:
   }
 
   if (interactive) {
-    const devInstructions = tomlEscape(config.developerInstructions);
+    // Launch the codex interactive TUI right here in the current terminal.
+    // No cmux, no surfaces — the profile knows nothing about any terminal manager.
     const flags = buildInteractiveFlags(config);
-
-    const launcherPath = `/tmp/${config.name}-launcher-${process.pid}.sh`;
-    const launcherContent = [
-      "#!/bin/sh",
-      `cd ${JSON.stringify(process.cwd())}`,
-      [
-        "exec codex",
-        ...flags.map((f) => JSON.stringify(f)),
-        "-c", `'developer_instructions="${devInstructions}"'`,
-        "--skip-git-repo-check",
-      ].join(" "),
-    ].join("\n");
-    writeFileSync(launcherPath, launcherContent, { mode: 0o755 });
-
-    try {
-      const result = execSync("cmux new-pane --focus true", {
-        encoding: "utf-8",
-        timeout: 5000,
-      }).trim();
-      const match = result.match(/surface:(\d+)/);
-      const surfaceRef = match ? `surface:${match[1]}` : undefined;
-      if (surfaceRef) {
-        execSync(`cmux send --surface ${surfaceRef} "${launcherPath}\n"`, {
-          encoding: "utf-8",
-          timeout: 5000,
-        });
-        console.log(`Opened interactive codex in ${surfaceRef}`);
-      } else {
-        console.error("Failed to parse cmux surface ref from:", result);
-        process.exit(1);
-      }
-    } catch (e: any) {
-      console.error("Failed to open cmux pane:", e.message);
+    const args = [
+      ...flags,
+      "-c", `developer_instructions="${tomlEscape(config.developerInstructions)}"`,
+      ...(prompt ? [prompt] : []),
+    ];
+    const child = spawn("codex", args, { stdio: "inherit", cwd: process.cwd() });
+    child.on("exit", (code, signal) => process.exit(signal ? 1 : code ?? 0));
+    child.on("error", (e) => {
+      console.error(`${config.name}: failed to launch codex: ${e.message}`);
       process.exit(1);
-    }
-    process.exit(0);
+    });
+    return;
   }
 
   if (!prompt) {
