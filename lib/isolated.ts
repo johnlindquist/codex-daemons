@@ -187,15 +187,26 @@ Usage:
   }
 
   const { startThread, cleanup } = createIsolatedCodex(config);
+
+  // Wire up AbortController so Ctrl+C kills the codex child process immediately
+  const ac = new AbortController();
+  const onSignal = () => {
+    ac.abort();
+    cleanup();
+    process.exit(130);
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
   const thread = startThread();
 
   try {
     if (quiet) {
-      const turn = await thread.run(prompt);
+      const turn = await thread.run(prompt, { signal: ac.signal });
       if (turn.finalResponse) console.log(turn.finalResponse);
     } else {
       // Streaming is the default — show everything as it happens
-      const { events } = await thread.runStreamed(prompt);
+      const { events } = await thread.runStreamed(prompt, { signal: ac.signal });
       for await (const event of events) {
         if (event.type === "item.started") {
           const item = event.item;
@@ -226,6 +237,8 @@ Usage:
       }
     }
   } finally {
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
     cleanup();
   }
 }
