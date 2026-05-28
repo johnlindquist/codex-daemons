@@ -43,6 +43,7 @@ export function createIsolatedCodex(config: ProfileConfig) {
       base_instructions: config.baseInstructions,
       developer_instructions: config.developerInstructions,
       model_reasoning_effort: config.reasoningEffort || "low",
+      show_raw_agent_reasoning: true,
 
       skills: { include_instructions: false },
       include_apps_instructions: false,
@@ -212,6 +213,13 @@ Usage:
             }
             if (item.exit_code !== 0) {
               process.stderr.write(`\x1b[31m→ exit ${item.exit_code}\x1b[0m\n`);
+            }
+          } else if (item.type === "reasoning" && item.text) {
+            process.stderr.write(`\x1b[2;3m${item.text}\x1b[0m\n`);
+          } else if (item.type === "todo_list") {
+            for (const todo of item.items) {
+              const mark = todo.completed ? "✓" : "○";
+              process.stderr.write(`\x1b[2m  ${mark} ${todo.text}\x1b[0m\n`);
             }
           }
         }
