@@ -2,15 +2,19 @@
 
 Single-purpose, isolated [Codex SDK](https://www.npmjs.com/package/@openai/codex-sdk) agents for common CLI tools. Each profile runs with ~6K input tokens instead of the default ~22K — faster, cheaper, and focused.
 
+All profiles start with `pro-` so you can type `pro-` and tab-complete to see every available agent.
+
 ## What is a profile?
 
 A profile is a single executable TypeScript file that wraps a CLI tool with an isolated Codex agent. It:
 
 - Loads **zero** user-space config (no plugins, skills, hooks, memories, or MCP servers)
-- Replaces the ~20K system prompt with a focused tool-specific prompt
+- Replaces the ~20K system prompt with a focused, Oracle-tuned prompt optimized for low-reasoning models
 - Disables unused tool schemas (Gmail, Slack, web, imagegen) via feature flags
 - Symlinks only `auth.json` for login — token refreshes propagate automatically
 - Uses `gpt-5.3-codex-spark` with `low` reasoning effort for maximum speed
+- Streams by default — shows commands, output, reasoning, and todos as they happen
+- Clean Ctrl+C — kills the agent, its commands, and cleans up temp files immediately
 
 ## Install
 
@@ -22,42 +26,58 @@ bun install
 bun link
 ```
 
-This installs dependencies and symlinks all profiles to `~/.bun/bin/` (which should be on your PATH if bun is installed). You can also run profiles directly without linking:
+This symlinks all profiles to `~/.bun/bin/`. Type `pro-` then tab to see them all. You can also run profiles directly without linking:
 
 ```bash
-bun profiles/ghs "list my open PRs"
+bun profiles/pro-gh "list my open PRs"
 ```
 
 ## Profiles
 
 | Command | Tool | Description |
 |---------|------|-------------|
-| `cxs` | [cmux](https://github.com/manaflow-ai/cmux) | Terminal workspace automation |
-| `ghs` | [gh](https://cli.github.com) | GitHub CLI (issues, PRs, releases, actions) |
-| `kbs` | [goku](https://github.com/yqrashawn/GokuRakuJoTu) | Karabiner-Elements config (karabiner.edn) |
-| `pxs` | [packx](https://www.npmjs.com/package/packx) | AI context bundling |
-| `bms` | [basic-memory](https://github.com/basicmachines-co/basic-memory) | Knowledge management |
-| `bds` | [bird](https://www.npmjs.com/package/bird) | Twitter/X CLI |
-| `abs` | [agent-browser](https://www.npmjs.com/package/agent-browser) | Browser automation |
-| `codex-minimal` | — | Bare template for building your own |
+| `pro-cmux` | [cmux](https://github.com/manaflow-ai/cmux) | Terminal workspace automation |
+| `pro-gh` | [gh](https://cli.github.com) | GitHub CLI (issues, PRs, releases, actions) |
+| `pro-karabiner` | [goku](https://github.com/yqrashawn/GokuRakuJoTu) | Karabiner-Elements config (karabiner.edn) |
+| `pro-packx` | [packx](https://www.npmjs.com/package/packx) | AI context bundling |
+| `pro-memory` | [basic-memory](https://github.com/basicmachines-co/basic-memory) | Knowledge management |
+| `pro-bird` | [bird](https://www.npmjs.com/package/bird) | Twitter/X CLI |
+| `pro-browser` | [agent-browser](https://www.npmjs.com/package/agent-browser) | Browser automation |
+| `pro-minimal` | — | Bare template for building your own |
 
 ## Usage
 
-Every profile streams by default — you see commands and output as they happen:
+Every profile streams by default — you see commands, output, reasoning, and todos as they happen:
 
 ```bash
-# Streaming (default) — shows commands being run in real-time
-ghs "list my open PRs"
+# Streaming (default) — shows everything in real-time
+pro-gh "list my open PRs"
 
 # Quiet mode — buffered, only shows the final answer
-ghs -q "list my open PRs"
+pro-gh -q "list my open PRs"
 
 # Interactive TUI in a new cmux pane
-ghs -i
+pro-gh -i
 
 # Help
-ghs --help
+pro-gh --help
+
+# Ctrl+C to stop at any time — kills agent + commands cleanly
 ```
+
+### What you see while streaming
+
+```
+$ gh pr list --author @me --state all --limit 3    ← command (dimmed)
+#42 fix login bug  OPEN                            ← command output (dimmed)
+#38 add search     MERGED                          ← command output (dimmed)
+                                                   
+Your 2 most recent PRs:                            ← agent's answer (normal)
+1. #42 fix login bug (open)
+2. #38 add search (merged)
+```
+
+Reasoning text appears in dim italic. Todo items show with ○/✓ marks. All verbose output goes to stderr, final answer to stdout — so `pro-gh "list PRs" > prs.txt` captures only the clean answer.
 
 ## Create your own
 
@@ -66,7 +86,7 @@ ghs --help
 ```bash
 bun run create
 # or after global install:
-codex-create-profile
+pro-create
 ```
 
 ### Option B: Copy-paste prompt
@@ -76,10 +96,19 @@ See [docs/PROMPT.md](docs/PROMPT.md) — paste it into any AI agent with your to
 ### Option C: Copy the template
 
 ```bash
-cp profiles/minimal profiles/my-tool
-chmod +x profiles/my-tool
+cp profiles/pro-minimal profiles/pro-my-tool
+chmod +x profiles/pro-my-tool
 # Edit and customize
 ```
+
+## Prompt design
+
+Prompts are optimized for `gpt-5.3-codex-spark` at `low` reasoning effort (reviewed by Oracle/GPT-5.5-pro). Key patterns:
+
+- **Operating rule first**: "Run [tool] via exec_command before any final answer. Do not answer from memory."
+- **Command maps**: Explicit IF/THEN mappings instead of vague instructions. Low-reasoning models need literal decision shortcuts.
+- **Consistent structure**: Every profile follows the same section order: Operating rule → Command map → Workflow → Command rules → Output.
+- **No --help dumps**: Curated command maps are more effective than raw CLI reference for low-reasoning models.
 
 ## How isolation works
 

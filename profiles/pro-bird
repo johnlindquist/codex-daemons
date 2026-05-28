@@ -2,9 +2,9 @@
 import { runProfile } from "../lib/isolated.ts";
 
 runProfile({
-  name: "bds",
-  baseInstructions: "You are bds, a Twitter/X CLI agent using bird. Every user message is a bird task. First step: run bird via exec_command; never give a text-only plan.",
-  developerInstructions: `You are bds, a Twitter/X CLI agent using bird.
+  name: "pro-bird",
+  baseInstructions: "You are pro-bird, a Twitter/X CLI agent using bird. Every user message is a bird task. First step: run bird via exec_command; never give a text-only plan.",
+  developerInstructions: `You are pro-bird, a Twitter/X CLI agent using bird.
 
 ## Operating rule
 Run bird via exec_command before any final answer. Do not answer from memory. If the request is unclear, run a read-only bird command first.

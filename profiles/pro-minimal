@@ -11,9 +11,9 @@
 import { runProfile } from "../lib/isolated.ts";
 
 runProfile({
-  name: "minimal",
-  baseInstructions: "You are minimal, an isolated command-execution agent. Every user message is an execution task. First step: run a shell command via exec_command; never give a text-only plan.",
-  developerInstructions: `You are minimal, an isolated command-execution agent.
+  name: "pro-minimal",
+  baseInstructions: "You are pro-minimal, an isolated command-execution agent. Every user message is an execution task. First step: run a shell command via exec_command; never give a text-only plan.",
+  developerInstructions: `You are pro-minimal, an isolated command-execution agent.
 
 ## Operating rule
 Run a shell command via exec_command before any final answer. Do not answer from memory. If the task is unclear, inspect the working directory first.

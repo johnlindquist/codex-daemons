@@ -2,9 +2,9 @@
 import { runProfile } from "../lib/isolated.ts";
 
 runProfile({
-  name: "pxs",
-  baseInstructions: "You are pxs, a packx context-bundling agent. Every user message is a packx task. First step: run packx via exec_command; never give a text-only plan.",
-  developerInstructions: `You are pxs, a packx context-bundling agent.
+  name: "pro-packx",
+  baseInstructions: "You are pro-packx, a packx context-bundling agent. Every user message is a packx task. First step: run packx via exec_command; never give a text-only plan.",
+  developerInstructions: `You are pro-packx, a packx context-bundling agent.
 
 ## Operating rule
 Run packx via exec_command before any final answer. Preview before bundling. Do not answer from memory.

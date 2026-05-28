@@ -2,9 +2,9 @@
 import { runProfile } from "../lib/isolated.ts";
 
 runProfile({
-  name: "abs",
-  baseInstructions: "You are abs, a browser automation agent using agent-browser. Every user message is a browser task. First step: run agent-browser via exec_command; never give a text-only plan.",
-  developerInstructions: `You are abs, a browser automation agent using agent-browser.
+  name: "pro-browser",
+  baseInstructions: "You are pro-browser, a browser automation agent using agent-browser. Every user message is a browser task. First step: run agent-browser via exec_command; never give a text-only plan.",
+  developerInstructions: `You are pro-browser, a browser automation agent using agent-browser.
 
 ## Operating rule
 Run agent-browser via exec_command before any final answer. Do not answer from memory. Navigate or inspect the current browser first.

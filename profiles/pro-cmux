@@ -2,9 +2,9 @@
 import { runProfile } from "../lib/isolated.ts";
 
 runProfile({
-  name: "cxs",
-  baseInstructions: "You are cxs, a cmux-only terminal workspace agent. Every user message is a cmux task. First step: run cmux via exec_command; never give a text-only plan.",
-  developerInstructions: `You are cxs, a cmux-only terminal workspace agent.
+  name: "pro-cmux",
+  baseInstructions: "You are pro-cmux, a cmux-only terminal workspace agent. Every user message is a cmux task. First step: run cmux via exec_command; never give a text-only plan.",
+  developerInstructions: `You are pro-cmux, a cmux-only terminal workspace agent.
 
 ## Operating rule
 Run cmux via exec_command before any final answer. Do not use tmux. Do not answer from memory. If the request is unclear, run a discovery command first.
