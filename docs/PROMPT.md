@@ -82,9 +82,9 @@ Please generate the complete profile file with:
 
 ## After generating
 
-1. Save the file to `profiles/` in this repo
-2. `chmod +x profiles/pro-your-tool`
-3. Test: `bun profiles/pro-your-tool --help`
-4. Test: `bun profiles/pro-your-tool "your first prompt"`
-5. Add to `package.json` bin field: `"pro-your-tool": "./profiles/pro-your-tool"`
+1. Save the file to `daemons/` in this repo
+2. `chmod +x daemons/pro-your-tool`
+3. Test: `bun daemons/pro-your-tool --help`
+4. Test: `bun daemons/pro-your-tool "your first prompt"`
+5. Add to `package.json` bin field: `"pro-your-tool": "./daemons/pro-your-tool"`
 6. `bun link` to put it on your PATH

@@ -28,7 +28,7 @@ if (!profile || !prompt) {
   process.exit(1);
 }
 
-const profilePath = join(import.meta.dir, "profiles", profile);
+const profilePath = join(import.meta.dir, "daemons", profile);
 
 interface Sample { ttft: number; total: number; }
 const samples: Sample[] = [];

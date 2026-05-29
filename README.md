@@ -29,7 +29,7 @@ bun link
 This symlinks all profiles to `~/.bun/bin/`. Type `pro-` then tab to see them all. You can also run profiles directly without linking:
 
 ```bash
-bun profiles/pro-gh "list my open PRs"
+bun daemons/pro-gh "list my open PRs"
 ```
 
 ## Profiles
@@ -145,8 +145,8 @@ See [docs/PROMPT.md](docs/PROMPT.md) — paste it into any AI agent with your to
 ### Option C: Copy the template
 
 ```bash
-cp profiles/pro-minimal profiles/pro-my-tool
-chmod +x profiles/pro-my-tool
+cp daemons/pro-minimal daemons/pro-my-tool
+chmod +x daemons/pro-my-tool
 # Edit and customize
 ```
 

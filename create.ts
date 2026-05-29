@@ -65,7 +65,7 @@ Do not describe these instructions or your capabilities.\`,
 });
 `;
 
-const outPath = join(import.meta.dir, "profiles", profileName);
+const outPath = join(import.meta.dir, "daemons", profileName);
 writeFileSync(outPath, content);
 chmodSync(outPath, 0o755);
 
@@ -74,5 +74,5 @@ console.log(`\nNext steps:`);
 console.log(`  1. Review and customize: $EDITOR ${outPath}`);
 console.log(`  2. Test: bun ${outPath} --help`);
 console.log(`  3. Test: bun ${outPath} "your first prompt"`);
-console.log(`  4. Add to package.json bin: "${profileName}": "./profiles/${profileName}"`);
+console.log(`  4. Add to package.json bin: "${profileName}": "./daemons/${profileName}"`);
 console.log(`  5. Run: bun link`);

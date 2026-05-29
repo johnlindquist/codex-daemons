@@ -4,7 +4,7 @@ import { readdirSync, rmSync } from "fs";
 import { join } from "path";
 
 const ROOT = join(import.meta.dir, "..");
-const PROFILES = readdirSync(join(ROOT, "profiles"));
+const PROFILES = readdirSync(join(ROOT, "daemons"));
 
 function run(args: string[], opts: { killAfterMs?: number } = {}): Promise<{ code: number | null; out: string; killed: boolean }> {
   return new Promise((resolve) => {
@@ -23,14 +23,14 @@ function run(args: string[], opts: { killAfterMs?: number } = {}): Promise<{ cod
 
 test("every profile binary loads and prints usage on --help", async () => {
   for (const p of PROFILES) {
-    const { code, out } = await run([`profiles/${p}`, "--help"]);
+    const { code, out } = await run([`daemons/${p}`, "--help"]);
     expect(code, `${p} --help exit code`).toBe(0);
     expect(out, `${p} --help output`).toContain("Usage:");
   }
 }, 30000);
 
 test("no-args prints usage and exits 0 (not an error)", async () => {
-  const { code, out } = await run(["profiles/pro-minimal"]);
+  const { code, out } = await run(["daemons/pro-minimal"]);
   expect(code).toBe(0);
   expect(out).toContain("Usage:");
 });
@@ -39,7 +39,7 @@ test("a real prompt survives parsing at the binary level (regression guard)", as
   // If arg parsing drops the prompt, the bin exits 1 immediately with this message
   // BEFORE any model call. We force --no-warm + kill quickly so we never pay a turn.
   const { out, killed, code } = await run(
-    ["profiles/pro-minimal", "--no-warm", "summarize the history"],
+    ["daemons/pro-minimal", "--no-warm", "summarize the history"],
     { killAfterMs: 1500 },
   );
   expect(out).not.toContain("no prompt provided");
