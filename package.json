@@ -10,6 +10,7 @@
     "pro-npm": "./profiles/pro-npm",
     "pro-kubectl": "./profiles/pro-kubectl",
     "pro-terraform": "./profiles/pro-terraform",
+    "pro-aws": "./profiles/pro-aws",
     "pro-gh": "./profiles/pro-gh",
     "pro-karabiner": "./profiles/pro-karabiner",
     "pro-packx": "./profiles/pro-packx",
