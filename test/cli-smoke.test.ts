@@ -4,7 +4,9 @@ import { readdirSync, rmSync } from "fs";
 import { join } from "path";
 
 const ROOT = join(import.meta.dir, "..");
-const PROFILES = readdirSync(join(ROOT, "daemons"));
+// Profile executables are extensionless `pro-*` files; skip sidecars like
+// `pro-selfimprove.lessons.md` / `.debug.jsonl` that a self-improving daemon writes.
+const PROFILES = readdirSync(join(ROOT, "daemons")).filter((f) => /^pro-[a-z0-9-]+$/.test(f));
 
 function run(args: string[], opts: { killAfterMs?: number } = {}): Promise<{ code: number | null; out: string; killed: boolean }> {
   return new Promise((resolve) => {

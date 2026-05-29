@@ -6,9 +6,15 @@
  */
 
 import { Codex, type CodexOptions, type ThreadOptions } from "@openai/codex-sdk";
-import { mkdirSync, symlinkSync, existsSync, rmSync } from "fs";
+import { rmSync } from "fs";
 import { spawn } from "child_process";
 import { ensureDaemon, runViaDaemon, runDaemon } from "./daemon.ts";
+import {
+  applyLessonOverlay,
+  hooksEnabled,
+  prepareIsolatedCodexHome,
+  type SelfImproveConfig,
+} from "./codex-runtime.ts";
 
 export interface ProfileConfig {
   name: string;
@@ -18,18 +24,16 @@ export interface ProfileConfig {
   developerInstructions: string;
   sandboxMode?: "read-only" | "workspace-write" | "danger-full-access";
   extraEnv?: Record<string, string>;
+  /** Opt in to the Stop-hook self-improvement loop (see lib/codex-runtime.ts). */
+  selfImprove?: SelfImproveConfig;
 }
 
-export function createIsolatedCodex(config: ProfileConfig) {
+export function createIsolatedCodex(rawConfig: ProfileConfig) {
+  const config = applyLessonOverlay(rawConfig);
   const realHome = process.env.HOME!;
   const isolatedHome = `/tmp/codex-profile-${config.name}-${process.pid}`;
-  mkdirSync(isolatedHome, { recursive: true });
-
-  const authSrc = `${realHome}/.codex/auth.json`;
-  const authDst = `${isolatedHome}/auth.json`;
-  if (existsSync(authSrc) && !existsSync(authDst)) {
-    symlinkSync(authSrc, authDst);
-  }
+  // Symlinks auth, and (when self-improvement is enabled) writes the hook config.
+  const runtime = prepareIsolatedCodexHome(config, isolatedHome, realHome);
 
   const model = config.model || process.env.CODEX_PROFILE_MODEL || "gpt-5.3-codex-spark";
 
@@ -39,6 +43,7 @@ export function createIsolatedCodex(config: ProfileConfig) {
       HOME: realHome,
       CODEX_HOME: isolatedHome,
       ...config.extraEnv,
+      ...runtime.extraEnv,
     },
     config: {
       base_instructions: config.baseInstructions,
@@ -57,9 +62,12 @@ export function createIsolatedCodex(config: ProfileConfig) {
       mcp_servers: {},
       web_search: "disabled",
 
+      // See appserver.ts: bypass hook trust so user hooks run non-interactively.
+      bypass_hook_trust: hooksEnabled(config),
+
       features: {
         plugins: false,
-        hooks: false,
+        hooks: hooksEnabled(config),
         memories: false,
         apps: false,
         image_generation: false,
@@ -92,7 +100,9 @@ function buildInteractiveFlags(config: ProfileConfig): string[] {
   return [
     "--dangerously-bypass-approvals-and-sandbox",
     "--disable", "plugins",
-    "--disable", "hooks",
+    ...(hooksEnabled(config)
+      ? ["-c", "features.hooks=true", "-c", "bypass_hook_trust=true"]
+      : ["--disable", "hooks"]),
     "--disable", "memories",
     "--disable", "apps",
     "--disable", "image_generation",
@@ -200,7 +210,10 @@ function renderEvent(event: any) {
   }
 }
 
-export async function runProfile(config: ProfileConfig) {
+export async function runProfile(rawConfig: ProfileConfig) {
+  // Fold any accumulated self-improvement lessons into developerInstructions
+  // before anything reads them (interactive + cold paths). Idempotent.
+  const config = applyLessonOverlay(rawConfig);
   const { interactive, quiet, help, daemon, noWarm, effort, prompt, noArgs } = parseArgs(process.argv);
 
   if (help || noArgs) {

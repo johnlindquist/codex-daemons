@@ -15,8 +15,10 @@
  */
 
 import { spawn, type ChildProcess } from "child_process";
-import { mkdirSync, symlinkSync, existsSync, rmSync } from "fs";
+import { rmSync } from "fs";
 import type { ProfileConfig } from "./isolated.ts";
+import { applyLessonOverlay, hooksEnabled, prepareIsolatedCodexHome } from "./codex-runtime.ts";
+import { recordLessons, type Failure } from "./self-improve-stop.ts";
 
 export interface TurnHandlers {
   /** Raw app-server notification (method + params). */
@@ -33,21 +35,28 @@ export class AppServerClient {
   private config: ProfileConfig;
   private model: string;
   private ready = false;
+  // Self-improvement: when enabled, detect failed tool calls in the turn stream
+  // and append lessons to this overlay. (Codex's own Stop hook does not fire for
+  // non-interactive app-server turns in the shipped build, so the daemon — which
+  // sees every command's exit code on the wire — drives the loop itself.)
+  private selfImprove = false;
+  private lessonsPath?: string;
 
   constructor(config: ProfileConfig) {
-    this.config = config;
-    this.model = config.model || process.env.CODEX_PROFILE_MODEL || "gpt-5.3-codex-spark";
-    this.isolatedHome = `/tmp/codex-appserver-${config.name}-${process.pid}`;
+    // Fold accumulated self-improvement lessons into developerInstructions once,
+    // at daemon start. Hot-reload restarts this daemon when the overlay changes.
+    this.config = applyLessonOverlay(config);
+    this.model = this.config.model || process.env.CODEX_PROFILE_MODEL || "gpt-5.3-codex-spark";
+    this.isolatedHome = `/tmp/codex-appserver-${this.config.name}-${process.pid}`;
   }
 
   /** Spawn the app-server and complete the initialize handshake. */
   async start(): Promise<void> {
     const realHome = process.env.HOME!;
-    mkdirSync(this.isolatedHome, { recursive: true });
-    const authSrc = `${realHome}/.codex/auth.json`;
-    if (existsSync(authSrc) && !existsSync(`${this.isolatedHome}/auth.json`)) {
-      symlinkSync(authSrc, `${this.isolatedHome}/auth.json`);
-    }
+    // Symlinks auth, and (when self-improvement is enabled) writes the hook config.
+    const runtime = prepareIsolatedCodexHome(this.config, this.isolatedHome, realHome);
+    this.selfImprove = runtime.hooksEnabled;
+    this.lessonsPath = runtime.lessonsPath;
 
     this.child = spawn("codex", ["app-server"], {
       env: {
@@ -55,6 +64,7 @@ export class AppServerClient {
         HOME: realHome,
         CODEX_HOME: this.isolatedHome,
         ...this.config.extraEnv,
+        ...runtime.extraEnv,
       },
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -146,8 +156,13 @@ export class AppServerClient {
         memories: { use_memories: false },
         mcp_servers: {},
         web_search: "disabled",
+        // Non-interactive isolated daemons own a throwaway CODEX_HOME, so user
+        // hooks can't be approved via a TUI — bypass trust to let them run.
+        // Passed here (not just config.toml) because thread/start config does
+        // not inherit the on-disk bypass flag.
+        bypass_hook_trust: hooksEnabled(this.config),
         features: {
-          plugins: false, hooks: false, memories: false, apps: false,
+          plugins: false, hooks: hooksEnabled(this.config), memories: false, apps: false,
           image_generation: false, tool_search: false, tool_suggest: false,
         },
       },
@@ -167,6 +182,7 @@ export class AppServerClient {
 
     return new Promise<string>((resolve, reject) => {
       let finalText = "";
+      const failures: Failure[] = [];
       const t = setTimeout(() => {
         this.handlers.delete(h);
         reject(new Error(`turn timeout\nstderr:\n${this.stderrTail}`));
@@ -184,8 +200,27 @@ export class AppServerClient {
         } else if (msg.method === "item/completed" && msg.params?.item?.type === "agentMessage") {
           // Authoritative full text (covers non-streamed/low-effort paths)
           if (msg.params.item.text) finalText = msg.params.item.text;
+        } else if (msg.method === "item/completed" && msg.params?.item?.type === "commandExecution") {
+          // Self-improvement signal: a tool/command that exited non-zero.
+          const item = msg.params.item;
+          if (this.selfImprove && typeof item.exitCode === "number" && item.exitCode !== 0) {
+            failures.push({
+              kind: "nonzero-exit",
+              path: "stream",
+              exit: item.exitCode,
+              command: typeof item.command === "string" ? item.command : undefined,
+              message: typeof item.aggregatedOutput === "string" ? item.aggregatedOutput : undefined,
+            });
+          }
         } else if (msg.method === "turn/completed") {
           clearTimeout(t); this.handlers.delete(h);
+          // Record lessons from this turn's failures before resolving. Best-effort:
+          // self-improvement must never break the turn. The next prompt's
+          // ensureDaemon() sees the changed overlay (hashed by sourceFingerprint)
+          // and restarts this daemon so the lessons load into developerInstructions.
+          if (this.selfImprove && this.lessonsPath && failures.length) {
+            try { recordLessons(this.lessonsPath, failures); } catch {}
+          }
           resolve(finalText);
         }
       };

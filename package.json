@@ -21,6 +21,8 @@
     "pro-memory": "./daemons/pro-memory",
     "pro-bird": "./daemons/pro-bird",
     "pro-browser": "./daemons/pro-browser",
+    "pro-browser-automate": "./daemons/pro-browser-automate",
+    "pro-selfimprove": "./daemons/pro-selfimprove",
     "pro-minimal": "./daemons/pro-minimal",
     "pro-create": "./create.ts"
   },
