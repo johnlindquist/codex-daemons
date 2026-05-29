@@ -41,6 +41,7 @@ bun profiles/pro-gh "list my open PRs"
 | `pro-docker` | [docker](https://docs.docker.com/engine/reference/commandline/cli/) | Containers, images, volumes, networks, Compose (guarded lifecycle) |
 | `pro-npm` | [npm](https://docs.npmjs.com/cli) | Node scripts, deps, package metadata, installs, audits |
 | `pro-kubectl` | [kubectl](https://kubernetes.io/docs/reference/kubectl/) | Kubernetes pods, services, logs, events, rollouts (guarded apply/delete) |
+| `pro-terraform` | [terraform](https://developer.hashicorp.com/terraform/cli) | IaC init, fmt, validate, plan, state inspection (guarded apply/destroy) |
 | `pro-gh` | [gh](https://cli.github.com) | GitHub CLI (issues, PRs, releases, actions) |
 | `pro-karabiner` | [goku](https://github.com/yqrashawn/GokuRakuJoTu) | Karabiner-Elements config (karabiner.edn) |
 | `pro-packx` | [packx](https://www.npmjs.com/package/packx) | AI context bundling |
