@@ -12,6 +12,7 @@
     "pro-terraform": "./profiles/pro-terraform",
     "pro-aws": "./profiles/pro-aws",
     "pro-jq": "./profiles/pro-jq",
+    "pro-rg": "./profiles/pro-rg",
     "pro-gh": "./profiles/pro-gh",
     "pro-karabiner": "./profiles/pro-karabiner",
     "pro-packx": "./profiles/pro-packx",

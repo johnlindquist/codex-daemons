@@ -44,6 +44,7 @@ bun profiles/pro-gh "list my open PRs"
 | `pro-terraform` | [terraform](https://developer.hashicorp.com/terraform/cli) | IaC init, fmt, validate, plan, state inspection (guarded apply/destroy) |
 | `pro-aws` | [aws](https://docs.aws.amazon.com/cli/) | AWS identity, EC2/S3/Lambda/logs inventory (guarded mutations) |
 | `pro-jq` | [jq](https://jqlang.github.io/jq/) | Inspect, filter, and transform JSON; build & test precise filters |
+| `pro-rg` | [ripgrep](https://github.com/BurntSushi/ripgrep) | Fast codebase search (read-only): symbols, TODOs, imports, configs |
 | `pro-gh` | [gh](https://cli.github.com) | GitHub CLI (issues, PRs, releases, actions) |
 | `pro-karabiner` | [goku](https://github.com/yqrashawn/GokuRakuJoTu) | Karabiner-Elements config (karabiner.edn) |
 | `pro-packx` | [packx](https://www.npmjs.com/package/packx) | AI context bundling |
