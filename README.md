@@ -102,7 +102,9 @@ The auto-started daemon is detached and persists after the call returns, so it s
 
 **Edits hot-reload automatically.** A warm daemon holds your profile's code in memory, so editing it would normally have no effect until you killed the daemon by hand. Instead, every call fingerprints the daemon's source — the profile executable (its instructions, model, env) plus every `lib/*.ts` module it loads — and compares it to what the running daemon was started with. If anything changed, the stale daemon is stopped and a fresh one is spawned **before** your prompt runs. So you can tweak a profile's internal prompt, swap the model, or change shared lib code and the **very next prompt respects the change** — no manual restart, no flag.
 
-### Experimental: a self-improving daemon (`pro-selfimprove`)
+### 🧪 Experimental: a self-improving daemon (`pro-selfimprove`)
+
+> **Status: experimental.** Added recently alongside the hot-reload work (see commits `Make warm daemon mode the default` → `Add pro-browser-automate + self-improve & hot-reload work`). It is **opt-in per profile and off everywhere else** — no existing `pro-*` daemon changes behavior. Treat it as a research toy: a daemon that rewrites its own prompt is inherently unpredictable, so don't point it at anything you can't afford to have it nudge over time. See the caveats below before relying on it.
 
 `pro-selfimprove` is a daemon that **learns from its own mistakes**. Opt in with `selfImprove: { enabled: true }` on a profile (see `daemons/pro-selfimprove`). When a turn ends, the daemon scans that turn for failed tool calls (non-zero command exits) and appends a concise **lesson** to a `daemons/<name>.lessons.md` overlay file. On startup each profile folds that overlay into its `developerInstructions`, and the lessons file is part of the hot-reload fingerprint — so the **next prompt restarts the daemon with the new lesson baked into its own prompt**. Over time it accumulates operating guidance shaped by what actually went wrong.
 
@@ -112,7 +114,17 @@ cat daemons/pro-selfimprove.lessons.md               # see what it learned
 pro-selfimprove "what have you learned so far?"        # turn 2: daemon restarted, lesson now in its instructions
 ```
 
-How it knows itself: each run injects `CODEX_DAEMON_SELF_PATH`, `CODEX_DAEMON_LIB_DIR`, and `CODEX_DAEMON_LESSONS_PATH` into the agent's environment, so it can reason about (and extend) its own source. Lessons are deduped by a content signature and the writer fails open — a broken self-improvement step never breaks your turn. (Detection runs daemon-side from the turn stream; the codebase also wires up a Codex `Stop` lifecycle hook for builds that execute user hooks non-interactively.)
+How it knows itself: each run injects `CODEX_DAEMON_SELF_PATH`, `CODEX_DAEMON_LIB_DIR`, and `CODEX_DAEMON_LESSONS_PATH` into the agent's environment, so it can reason about (and extend) its own source. Lessons are deduped by a content signature and the writer fails open — a broken self-improvement step never breaks your turn.
+
+**Why it's experimental (and the sharp edges):**
+
+- **It edits its own prompt.** Each failed turn changes what the daemon will be told next time. Behavior drifts as lessons accumulate, and a bad lesson can make it *worse*. There's no automatic rollback-on-regression yet — if it goes sideways, reset it: `rm daemons/pro-selfimprove.lessons.md`.
+- **Lessons grow unbounded.** No aging or cap on the overlay today; left running it will keep appending. Prune the file periodically.
+- **Failure detection is a blunt heuristic** — it flags non-zero command exits (and `error`/`failed` markers), not genuine "mistakes." A command that's *supposed* to exit non-zero (a probe, a grep with no match) can still generate a lesson.
+- **It works via a daemon-side trigger, not Codex's hooks.** The intended design was a Codex `Stop` lifecycle hook, but the shipped Codex CLI (verified on 0.134/0.135) does **not** execute user-config hooks for non-interactive `exec`/`app-server` turns. So detection runs daemon-side off the turn stream instead; the `Stop`-hook wiring is kept only as forward-compat for builds that do run user hooks. This is the main reason it's labeled experimental rather than stable.
+- **Lessons files are git-ignored** (`daemons/*.lessons.md`) — a daemon's learned state is local to your machine, not shared or versioned.
+
+To try it safely, run it in a throwaway repo, watch `daemons/pro-selfimprove.lessons.md`, and delete that file whenever you want a clean slate.
 
 **`--effort <none|minimal|low|medium|high|xhigh>`** overrides reasoning effort for a single prompt. Lower is faster, but verified caveat: **`none` breaks tool use** — with zero reasoning the model answers trivial prompts ("say hi") but never decides to run commands, so a real `gh` task returns empty. `low` (the default) is the floor that reliably executes tools. Use `none`/`minimal` only for pure text replies.
 
